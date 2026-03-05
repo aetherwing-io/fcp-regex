@@ -30,7 +30,7 @@ pub fn all_patterns() -> Vec<&'static LibraryPattern> {
 /// Look up a pattern by name or alias.
 pub fn get_pattern(name: &str) -> Option<&'static LibraryPattern> {
     all_modules().into_iter().flat_map(|m| m.iter()).find(|p| {
-        p.name == name || p.aliases.iter().any(|a| *a == name)
+        p.name == name || p.aliases.contains(&name)
     })
 }
 

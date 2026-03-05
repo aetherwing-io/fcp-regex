@@ -244,6 +244,7 @@ mod tests {
     }
 
     #[derive(Clone, Debug)]
+    #[allow(dead_code)]
     struct MockEvent(String);
 
     struct MockHooks {
