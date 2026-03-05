@@ -1,0 +1,11 @@
+{
+  "name": "fcp-regex",
+  "description": "Build regexes via named fragment composition — no raw syntax, no escaping burden",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": {
+    "name": "Scott Meyer"
+  },
+  "repository": "https://github.com/aetherwing-io/fcp-regex",
+  "keywords": ["regex", "pattern-matching", "composition", "mcp"]
+}
