@@ -29,13 +29,10 @@ pub fn handle_define(op: &ParsedOp, registry: &mut FragmentRegistry) -> (String,
     if element_tokens.is_empty() {
         return ("ERROR: define requires at least one element".to_string(), None);
     }
-    let mut elements = Vec::new();
-    for token in &element_tokens {
-        match parse_element(token) {
-            Ok(elem) => elements.push(elem),
-            Err(e) => return (format!("ERROR: {}", e), None),
-        }
-    }
+    let elements: Vec<_> = match element_tokens.iter().map(|t| parse_element(t)).collect::<Result<_, _>>() {
+        Ok(elems) => elems,
+        Err(e) => return (format!("ERROR: {e}"), None),
+    };
     match registry.define(name, elements) {
         Ok(event) => {
             let count = match &event {
@@ -43,11 +40,11 @@ pub fn handle_define(op: &ParsedOp, registry: &mut FragmentRegistry) -> (String,
                 _ => 0,
             };
             (
-                format!("+ fragment {:?} defined ({} elements)", name, count),
+                format!("+ fragment {name:?} defined ({count} elements)"),
                 Some(event),
             )
         }
-        Err(e) => (format!("ERROR: {}", e), None),
+        Err(e) => (format!("ERROR: {e}"), None),
     }
 }
 
@@ -56,18 +53,17 @@ pub fn handle_from(op: &ParsedOp, registry: &mut FragmentRegistry) -> (String, O
         return ("ERROR: from requires a library source name".to_string(), None);
     }
     let source = &op.positionals[0];
-    let pattern = match library::get_pattern(source) {
-        Some(p) => p,
-        None => return (format!("ERROR: library pattern {:?} not found", source), None),
+    let Some(pattern) = library::get_pattern(source) else {
+        return (format!("ERROR: library pattern {source:?} not found"), None);
     };
     let alias = op.params.get("as").map(|s| s.as_str()).unwrap_or(pattern.name);
     let elements = vec![Element::Raw(pattern.regex.to_string())];
     match registry.define(alias, elements) {
         Ok(event) => (
-            format!("+ imported {:?} from {}", alias, source),
+            format!("+ imported {alias:?} from {source}"),
             Some(event),
         ),
-        Err(e) => (format!("ERROR: {}", e), None),
+        Err(e) => (format!("ERROR: {e}"), None),
     }
 }
 
@@ -83,8 +79,8 @@ pub fn handle_compile(op: &ParsedOp, registry: &FragmentRegistry) -> (String, Op
         .map(|s| s == "true")
         .unwrap_or(false);
     match compiler::compile(registry, name, flavor, anchored) {
-        Ok(result) => (format!("= {}: {}", name, result.regex), None),
-        Err(e) => (format!("ERROR: {}", e), None),
+        Ok(result) => (format!("= {name}: {}", result.regex), None),
+        Err(e) => (format!("ERROR: {e}"), None),
     }
 }
 
@@ -95,10 +91,10 @@ pub fn handle_drop(op: &ParsedOp, registry: &mut FragmentRegistry) -> (String, O
     let name = &op.positionals[0];
     match registry.drop(name) {
         Ok(event) => (
-            format!("- fragment {:?} dropped", name),
+            format!("- fragment {name:?} dropped"),
             Some(event),
         ),
-        Err(e) => (format!("ERROR: {}", e), None),
+        Err(e) => (format!("ERROR: {e}"), None),
     }
 }
 
@@ -110,10 +106,10 @@ pub fn handle_rename(op: &ParsedOp, registry: &mut FragmentRegistry) -> (String,
     let new = &op.positionals[1];
     match registry.rename(old, new) {
         Ok(event) => (
-            format!("* fragment {:?} renamed to {:?}", old, new),
+            format!("* fragment {old:?} renamed to {new:?}"),
             Some(event),
         ),
-        Err(e) => (format!("ERROR: {}", e), None),
+        Err(e) => (format!("ERROR: {e}"), None),
     }
 }
 

@@ -72,7 +72,8 @@ impl VerbRegistry {
         let mut lines: Vec<String> = Vec::new();
 
         for cat in &self.categories {
-            lines.push(format!("{}:", cat.name.to_uppercase()));
+            let name = cat.name.to_uppercase();
+            lines.push(format!("{name}:"));
             for spec in &cat.specs {
                 lines.push(format!("  {}", spec.syntax));
             }
@@ -81,7 +82,8 @@ impl VerbRegistry {
 
         if let Some(sections) = extra_sections {
             for (title, content) in sections {
-                lines.push(format!("{}:", title.to_uppercase()));
+                let header = title.to_uppercase();
+                lines.push(format!("{header}:"));
                 lines.push(content.clone());
                 lines.push(String::new());
             }

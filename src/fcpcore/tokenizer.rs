@@ -86,48 +86,36 @@ pub fn is_key_value(token: &str) -> bool {
     if is_arrow(token) {
         return false;
     }
-    let idx = match token.find(':') {
-        Some(i) => i,
-        None => return false,
+    let Some(idx) = token.find(':') else {
+        return false;
     };
     if idx == 0 || idx >= token.len() - 1 {
         return false;
     }
     let key = &token[..idx];
-    for ch in key.chars() {
-        if !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-') {
-            return false;
-        }
-    }
-    true
+    key.chars().all(|ch| matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-'))
 }
 
 /// Parses a key:value token into its key and value parts.
 /// If the value is wrapped in double quotes, they are stripped.
 pub fn parse_key_value(token: &str) -> (String, String) {
-    let idx = token.find(':').unwrap();
-    let key = token[..idx].to_string();
-    let mut value = token[idx + 1..].to_string();
+    let (key, raw_value) = token.split_once(':').unwrap();
+    let mut value = raw_value.to_string();
     if value.len() >= 2 && value.starts_with('"') && value.ends_with('"') {
-        value = value[1..value.len() - 1].to_string();
+        value = raw_value[1..raw_value.len() - 1].to_string();
     }
-    (key, value)
+    (key.to_string(), value)
 }
 
 /// Parses a key:value token, also returning whether the value was quoted.
 pub fn parse_key_value_with_meta(token: &str) -> (String, String, bool) {
-    let idx = token.find(':').unwrap();
-    let key = token[..idx].to_string();
-    let raw_value = &token[idx + 1..];
-    let mut was_quoted = false;
-    let value;
-    if raw_value.len() >= 2 && raw_value.starts_with('"') && raw_value.ends_with('"') {
-        value = raw_value[1..raw_value.len() - 1].to_string();
-        was_quoted = true;
+    let (key, raw_value) = token.split_once(':').unwrap();
+    let (value, was_quoted) = if raw_value.len() >= 2 && raw_value.starts_with('"') && raw_value.ends_with('"') {
+        (raw_value[1..raw_value.len() - 1].to_string(), true)
     } else {
-        value = raw_value.to_string();
-    }
-    (key, value, was_quoted)
+        (raw_value.to_string(), false)
+    };
+    (key.to_string(), value, was_quoted)
 }
 
 /// Returns true if the token is an arrow operator: ->, <->, or --

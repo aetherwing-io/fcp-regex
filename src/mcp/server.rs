@@ -120,7 +120,7 @@ Example: ops=['define digits any:digit+', 'compile digits anchored:true']")]
                     let msg = format!("ERROR: unknown verb {:?}", op.verb);
                     let suggestion = crate::fcpcore::formatter::suggest(&op.verb, &known_verbs);
                     if let Some(s) = suggestion {
-                        (format!("{}\n  try: {}", msg, s), None)
+                        (format!("{msg}\n  try: {s}"), None)
                     } else {
                         (msg, None)
                     }
@@ -190,7 +190,7 @@ impl RegexServer {
             "undo" => self.handle_undo(&tokens).await,
             "redo" => self.handle_redo().await,
             "checkpoint" => self.handle_checkpoint(&tokens).await,
-            _ => format!("! unknown session action {:?}", tokens[0]),
+            other => format!("! unknown session action {other:?}"),
         }
     }
 
@@ -227,7 +227,7 @@ impl RegexServer {
         state.flavor = flavor.clone();
         state.active = true;
 
-        format!("+ new session {:?} (flavor: {})", title, flavor)
+        format!("+ new session {title:?} (flavor: {flavor})")
     }
 
     async fn handle_close(&self) -> String {
@@ -262,12 +262,13 @@ impl RegexServer {
         if let Some(name) = tokens.iter().find_map(|t| t.strip_prefix("to:")) {
             let events = match state.event_log.undo_to(name) {
                 Ok(evs) => evs,
-                Err(e) => return format!("! {}", e),
+                Err(e) => return format!("! {e}"),
             };
             for event in &events {
                 reverse_event(event, &mut state.registry);
             }
-            return format!("= undone to checkpoint {:?} ({} events)", name, events.len());
+            let count = events.len();
+            return format!("= undone to checkpoint {name:?} ({count} events)");
         }
 
         let events = state.event_log.undo(1);
@@ -277,7 +278,8 @@ impl RegexServer {
         for event in &events {
             reverse_event(event, &mut state.registry);
         }
-        format!("= undone {} event(s)", events.len())
+        let count = events.len();
+        format!("= undone {count} event(s)")
     }
 
     async fn handle_redo(&self) -> String {
@@ -289,7 +291,8 @@ impl RegexServer {
         for event in &events {
             replay_event(event, &mut state.registry);
         }
-        format!("= redone {} event(s)", events.len())
+        let count = events.len();
+        format!("= redone {count} event(s)")
     }
 
     async fn handle_checkpoint(&self, tokens: &[&str]) -> String {
@@ -299,7 +302,7 @@ impl RegexServer {
         let name = tokens[1];
         let mut state = self.state.lock().await;
         state.event_log.checkpoint(name);
-        format!("= checkpoint {:?} created", name)
+        format!("= checkpoint {name:?} created")
     }
 }
 

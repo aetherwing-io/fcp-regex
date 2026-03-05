@@ -57,7 +57,7 @@ impl FragmentRegistry {
         let fragment = self
             .fragments
             .remove(name)
-            .ok_or_else(|| format!("fragment {:?} not found", name))?;
+            .ok_or_else(|| format!("fragment {name:?} not found"))?;
         Ok(RegexEvent::Drop {
             name: name.to_string(),
             elements: fragment.elements,
@@ -67,10 +67,10 @@ impl FragmentRegistry {
     pub fn rename(&mut self, old: &str, new: &str) -> Result<RegexEvent, String> {
         validate_fragment_name(new)?;
         if !self.fragments.contains_key(old) {
-            return Err(format!("fragment {:?} not found", old));
+            return Err(format!("fragment {old:?} not found"));
         }
         if self.fragments.contains_key(new) {
-            return Err(format!("fragment {:?} already exists", new));
+            return Err(format!("fragment {new:?} already exists"));
         }
 
         let mut fragment = self.fragments.remove(old).unwrap();

@@ -46,7 +46,7 @@ fn discover_socket() -> Option<String> {
         }
     }
     if let Ok(xdg) = std::env::var("XDG_RUNTIME_DIR") {
-        let path = format!("{}/slipstream/daemon.sock", xdg);
+        let path = format!("{xdg}/slipstream/daemon.sock");
         if std::path::Path::new(&path).exists() {
             return Some(path);
         }
@@ -54,7 +54,7 @@ fn discover_socket() -> Option<String> {
     #[cfg(unix)]
     {
         let uid = unsafe { libc::getuid() };
-        let path = format!("/tmp/slipstream-{}/daemon.sock", uid);
+        let path = format!("/tmp/slipstream-{uid}/daemon.sock");
         if std::path::Path::new(&path).exists() {
             return Some(path);
         }
@@ -89,7 +89,7 @@ async fn run_bridge(server: RegexServer) -> Result<(), Box<dyn std::error::Error
         }
     });
     writer
-        .write_all(format!("{}\n", register).as_bytes())
+        .write_all(format!("{register}\n").as_bytes())
         .await?;
 
     // Request loop
@@ -98,7 +98,7 @@ async fn run_bridge(server: RegexServer) -> Result<(), Box<dyn std::error::Error
         let response = handle_request(&server, req).await;
         let json = serde_json::to_string(&response)?;
         writer
-            .write_all(format!("{}\n", json).as_bytes())
+            .write_all(format!("{json}\n").as_bytes())
             .await?;
     }
 

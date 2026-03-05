@@ -24,9 +24,9 @@ pub fn handle_query(q: &str, registry: &FragmentRegistry) -> String {
         "history" => cmd_history(rest),
         _ => {
             let known = ["show", "describe", "test", "explain", "list", "get", "map", "stats", "status", "history"];
-            let msg = format!("! unknown query command {:?}", command);
+            let msg = format!("! unknown query command {command:?}");
             match crate::fcpcore::formatter::suggest(command, &known) {
-                Some(s) => format!("{}\n  try: {}", msg, s),
+                Some(s) => format!("{msg}\n  try: {s}"),
                 None => msg,
             }
         }
@@ -37,21 +37,23 @@ fn cmd_show(name: &str, registry: &FragmentRegistry) -> String {
     if name.is_empty() {
         return "! show requires a fragment name".to_string();
     }
-    let fragment = match registry.get(name) {
-        Some(f) => f,
-        None => return format!("! fragment {:?} not found", name),
+    let Some(fragment) = registry.get(name) else {
+        return format!("! fragment {name:?} not found");
     };
 
     let mut lines = Vec::new();
-    lines.push(format!("= FRAGMENT: {}", name));
-    lines.push(format!("  ELEMENTS ({}): {:?}", fragment.elements.len(), fragment.elements));
+    lines.push(format!("= FRAGMENT: {name}"));
+    let elem_count = fragment.elements.len();
+    let elems = &fragment.elements;
+    lines.push(format!("  ELEMENTS ({elem_count}): {elems:?}"));
 
     match compiler::compile(registry, name, "pcre", false) {
         Ok(result) => {
-            lines.push(format!("  REGEX: {}", result.regex));
+            let regex = &result.regex;
+            lines.push(format!("  REGEX: {regex}"));
         }
         Err(e) => {
-            lines.push(format!("  COMPILE ERROR: {}", e));
+            lines.push(format!("  COMPILE ERROR: {e}"));
         }
     }
     lines.join("\n")
@@ -74,7 +76,7 @@ fn cmd_test(rest: &str, registry: &FragmentRegistry) -> String {
 
     let compiled = match compiler::compile(registry, name, "pcre", false) {
         Ok(r) => r,
-        Err(e) => return format!("! compile error: {}", e),
+        Err(e) => return format!("! compile error: {e}"),
     };
 
     match regex::Regex::new(&compiled.regex) {
@@ -85,7 +87,7 @@ fn cmd_test(rest: &str, registry: &FragmentRegistry) -> String {
                 format!("= NO MATCH — {:?} does not match /{}/", test_string, compiled.regex)
             }
         }
-        Err(e) => format!("! regex error: {}", e),
+        Err(e) => format!("! regex error: {e}"),
     }
 }
 
@@ -103,7 +105,7 @@ fn cmd_list(rest: &str, registry: &FragmentRegistry) -> String {
         let cats = library::list_categories();
         let mut lines = vec!["= LIBRARY CATEGORIES:".to_string()];
         for (name, count) in &cats {
-            lines.push(format!("  {} ({})", name, count));
+            lines.push(format!("  {name} ({count})"));
         }
         return lines.join("\n");
     }
@@ -114,9 +116,9 @@ fn cmd_list(rest: &str, registry: &FragmentRegistry) -> String {
         if let Some(cat) = lib_rest.strip_prefix("category:") {
             let patterns = library::list_category(cat);
             if patterns.is_empty() {
-                return format!("! unknown library category {:?}", cat);
+                return format!("! unknown library category {cat:?}");
             }
-            let mut lines = vec![format!("= LIBRARY — {}:", cat)];
+            let mut lines = vec![format!("= LIBRARY — {cat}:")];
             for p in &patterns {
                 lines.push(format!("  {}", p.name));
             }
@@ -131,39 +133,42 @@ fn cmd_list(rest: &str, registry: &FragmentRegistry) -> String {
         }
         let mut lines = vec!["= FRAGMENTS:".to_string()];
         for frag in &fragments {
-            lines.push(format!("  {} ({} elements)", frag.name, frag.elements.len()));
+            let name = &frag.name;
+        let count = frag.elements.len();
+        lines.push(format!("  {name} ({count} elements)"));
         }
         return lines.join("\n");
     }
 
-    format!("! unknown list subcommand {:?}", trimmed)
+    format!("! unknown list subcommand {trimmed:?}")
 }
 
 fn cmd_get(name: &str) -> String {
     if name.is_empty() {
         return "! get requires a pattern name".to_string();
     }
-    match library::get_pattern(name) {
-        Some(p) => {
-            let mut lines = Vec::new();
-            lines.push(format!("= PATTERN: {}", p.name));
-            lines.push(format!("  SOURCE: {}", p.source));
-            lines.push(format!("  FLAVOR: {}", p.flavor));
-            lines.push(format!("  REGEX: {}", p.regex));
-            lines.push(format!("  STRUCTURE: {}", p.structure));
-            if !p.test_match.is_empty() {
-                lines.push(format!("  TEST CASES (match): {}", p.test_match.join(", ")));
-            }
-            if !p.test_no_match.is_empty() {
-                lines.push(format!("  TEST CASES (no match): {}", p.test_no_match.join(", ")));
-            }
-            if !p.flavor_notes.is_empty() {
-                lines.push(format!("  FLAVOR NOTES: {}", p.flavor_notes));
-            }
-            lines.join("\n")
-        }
-        None => format!("! pattern {:?} not found", name),
+    let Some(p) = library::get_pattern(name) else {
+        return format!("! pattern {name:?} not found");
+    };
+    let mut lines = vec![
+        format!("= PATTERN: {}", p.name),
+        format!("  SOURCE: {}", p.source),
+        format!("  FLAVOR: {}", p.flavor),
+        format!("  REGEX: {}", p.regex),
+        format!("  STRUCTURE: {}", p.structure),
+    ];
+    if !p.test_match.is_empty() {
+        let cases = p.test_match.join(", ");
+        lines.push(format!("  TEST CASES (match): {cases}"));
     }
+    if !p.test_no_match.is_empty() {
+        let cases = p.test_no_match.join(", ");
+        lines.push(format!("  TEST CASES (no match): {cases}"));
+    }
+    if !p.flavor_notes.is_empty() {
+        lines.push(format!("  FLAVOR NOTES: {}", p.flavor_notes));
+    }
+    lines.join("\n")
 }
 
 fn cmd_map(registry: &FragmentRegistry) -> String {
@@ -182,11 +187,13 @@ fn cmd_stats(registry: &FragmentRegistry) -> String {
 
     let mut lines = Vec::new();
     lines.push("= STATS:".to_string());
-    lines.push(format!("  Fragments: {}", fragments.len()));
+    let frag_count = fragments.len();
     let total_elements: usize = fragments.iter().map(|f| f.elements.len()).sum();
-    lines.push(format!("  Total elements: {}", total_elements));
-    lines.push(format!("  Library patterns: {}", lib_count));
-    lines.push(format!("  Library categories: {}", categories.len()));
+    let cat_count = categories.len();
+    lines.push(format!("  Fragments: {frag_count}"));
+    lines.push(format!("  Total elements: {total_elements}"));
+    lines.push(format!("  Library patterns: {lib_count}"));
+    lines.push(format!("  Library categories: {cat_count}"));
     lines.join("\n")
 }
 

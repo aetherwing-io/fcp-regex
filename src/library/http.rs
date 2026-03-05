@@ -33,7 +33,7 @@ static PATTERNS: [LibraryPattern; 6] = [
         name: "rfc6265:cookie-value",
         source: "RFC 6265",
         flavor: "pcre2",
-        regex: r#"[!#$%&'()*+\-./0-9:;<=>?@A-Z\[\]^_`a-z{|}~]+"#,
+        regex: r"[!#$%&'()*+\-./0-9:;<=>?@A-Z\[\]^_`a-z{|}~]+",
         structure: "1*cookie-octet",
         test_match: &["sessionid=abc123", "theme=dark"],
         test_no_match: &["has space", ""],

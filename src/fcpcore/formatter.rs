@@ -12,10 +12,10 @@
 ///     @ bulk/layout operation
 pub fn format_result(success: bool, message: &str, prefix: Option<&str>) -> String {
     if !success {
-        return format!("ERROR: {}", message);
+        return format!("ERROR: {message}");
     }
     match prefix {
-        Some(p) if !p.is_empty() => format!("{} {}", p, message),
+        Some(p) if !p.is_empty() => format!("{p} {message}"),
         _ => message.to_string(),
     }
 }

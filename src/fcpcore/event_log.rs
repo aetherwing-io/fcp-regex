@@ -73,7 +73,7 @@ impl<T: Clone> EventLog<T> {
     pub fn undo_to(&mut self, name: &str) -> Result<Vec<T>, String> {
         let target = match self.checkpoints.get(name) {
             Some(&t) if t < self.cursor => t,
-            _ => return Err(format!("cannot undo to {:?}", name)),
+            _ => return Err(format!("cannot undo to {name:?}")),
         };
 
         let mut result = Vec::new();
@@ -133,12 +133,7 @@ impl<T: Clone> EventLog<T> {
 
     /// Returns whether there are events before the cursor that can be undone.
     pub fn can_undo(&self) -> bool {
-        for i in (0..self.cursor).rev() {
-            if matches!(self.events[i], Entry::Event(_)) {
-                return true;
-            }
-        }
-        false
+        self.events[..self.cursor].iter().any(|e| matches!(e, Entry::Event(_)))
     }
 
     /// Returns whether there are events after the cursor that can be redone.

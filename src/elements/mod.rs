@@ -41,13 +41,10 @@ pub fn validate_fragment_name(name: &str) -> Result<(), String> {
     if name.is_empty() {
         return Err("fragment name cannot be empty".to_string());
     }
-    for ch in name.chars() {
-        if !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-') {
-            return Err(format!(
-                "invalid character {:?} in fragment name {:?} (allowed: a-z, A-Z, 0-9, -)",
-                ch, name
-            ));
-        }
+    if let Some(ch) = name.chars().find(|ch| !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-')) {
+        return Err(format!(
+            "invalid character {ch:?} in fragment name {name:?} (allowed: a-z, A-Z, 0-9, -)",
+        ));
     }
     Ok(())
 }
@@ -98,7 +95,7 @@ fn parse_char_class(s: &str) -> Result<CharClass, String> {
         "word" => Ok(CharClass::Word),
         "whitespace" => Ok(CharClass::Whitespace),
         "any" => Ok(CharClass::Any),
-        _ => Err(format!("unknown character class {:?}", s)),
+        _ => Err(format!("unknown character class {s:?}")),
     }
 }
 
@@ -167,9 +164,7 @@ pub fn parse_element(token: &str) -> Result<Element, String> {
         if rest.is_empty() {
             return Err("cap: requires a name".to_string());
         }
-        if let Some(slash_pos) = rest.find('/') {
-            let label = &rest[..slash_pos];
-            let name = &rest[slash_pos + 1..];
+        if let Some((label, name)) = rest.split_once('/') {
             if label.is_empty() || name.is_empty() {
                 return Err("cap: named capture requires label/name".to_string());
             }
@@ -182,9 +177,7 @@ pub fn parse_element(token: &str) -> Result<Element, String> {
         if rest.is_empty() {
             return Err("sep: requires name/separator".to_string());
         }
-        let slash_pos = rest.find('/').ok_or("sep: requires name/separator format")?;
-        let name = &rest[..slash_pos];
-        let sep = &rest[slash_pos + 1..];
+        let (name, sep) = rest.split_once('/').ok_or("sep: requires name/separator format")?;
         if name.is_empty() || sep.is_empty() {
             return Err("sep: requires both name and separator".to_string());
         }

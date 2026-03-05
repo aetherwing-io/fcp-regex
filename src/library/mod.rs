@@ -24,30 +24,14 @@ pub struct LibraryPattern {
 
 /// Get all patterns from all categories.
 pub fn all_patterns() -> Vec<&'static LibraryPattern> {
-    let mut result = Vec::new();
-    for module in all_modules() {
-        for p in module {
-            result.push(p);
-        }
-    }
-    result
+    all_modules().into_iter().flat_map(|m| m.iter()).collect()
 }
 
 /// Look up a pattern by name or alias.
 pub fn get_pattern(name: &str) -> Option<&'static LibraryPattern> {
-    for module in all_modules() {
-        for p in module {
-            if p.name == name {
-                return Some(p);
-            }
-            for alias in p.aliases {
-                if *alias == name {
-                    return Some(p);
-                }
-            }
-        }
-    }
-    None
+    all_modules().into_iter().flat_map(|m| m.iter()).find(|p| {
+        p.name == name || p.aliases.iter().any(|a| *a == name)
+    })
 }
 
 /// List categories with counts.

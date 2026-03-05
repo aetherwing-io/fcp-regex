@@ -20,14 +20,14 @@ pub fn compile(
     let mut visited = HashSet::new();
     let regex = compile_fragment(registry, name, &mut visited)?;
     let final_regex = if anchored {
-        format!("^{}$", regex)
+        format!("^{regex}$")
     } else {
         regex
     };
     Ok(CompileResult {
         regex: final_regex,
         flavor: flavor.to_string(),
-        explanation: format!("compiled from fragment {:?}", name),
+        explanation: format!("compiled from fragment {name:?}"),
     })
 }
 
@@ -37,15 +37,14 @@ fn compile_fragment(
     visited: &mut HashSet<String>,
 ) -> Result<String, String> {
     if !visited.insert(name.to_string()) {
-        return Err(format!("cycle detected: fragment {:?} references itself", name));
+        return Err(format!("cycle detected: fragment {name:?} references itself"));
     }
     let fragment = registry
         .get(name)
-        .ok_or_else(|| format!("fragment {:?} not found", name))?;
-    let mut parts = Vec::new();
-    for elem in &fragment.elements {
-        parts.push(compile_element(registry, elem, visited)?);
-    }
+        .ok_or_else(|| format!("fragment {name:?} not found"))?;
+    let parts: Vec<_> = fragment.elements.iter()
+        .map(|elem| compile_element(registry, elem, visited))
+        .collect::<Result<_, _>>()?;
     visited.remove(name);
     Ok(parts.join(""))
 }
@@ -72,29 +71,28 @@ fn compile_element(
         }
         Element::Optional(name) => {
             let compiled = compile_fragment(registry, name, visited)?;
-            Ok(format!("(?:{})?", compiled))
+            Ok(format!("(?:{compiled})?"))
         }
         Element::Alternation(names) => {
-            let mut alts = Vec::new();
-            for name in names {
-                alts.push(compile_fragment(registry, name, visited)?);
-            }
+            let alts: Vec<_> = names.iter()
+                .map(|name| compile_fragment(registry, name, visited))
+                .collect::<Result<_, _>>()?;
             Ok(format!("(?:{})", alts.join("|")))
         }
         Element::Capture(name) => {
             let compiled = compile_fragment(registry, name, visited)?;
-            Ok(format!("({})", compiled))
+            Ok(format!("({compiled})"))
         }
         Element::NamedCapture(label, name) => {
             let compiled = compile_fragment(registry, name, visited)?;
-            Ok(format!("(?P<{}>{})", label, compiled))
+            Ok(format!("(?P<{label}>{compiled})"))
         }
         Element::SepBy(name, sep_str) => {
             let compiled_name = compile_fragment(registry, name, visited)?;
             let sep_elem = crate::elements::parse_element(sep_str)
-                .map_err(|e| format!("invalid separator element: {}", e))?;
+                .map_err(|e| format!("invalid separator element: {e}"))?;
             let compiled_sep = compile_element(registry, &sep_elem, visited)?;
-            Ok(format!("{}(?:{}{})*", compiled_name, compiled_sep, compiled_name))
+            Ok(format!("{compiled_name}(?:{compiled_sep}{compiled_name})*"))
         }
         Element::Raw(regex) => Ok(regex.clone()),
     }
@@ -128,9 +126,9 @@ fn quantifier_to_str(quant: &Quantifier) -> String {
         Quantifier::ZeroOrMore => "*".to_string(),
         Quantifier::OneOrMore => "+".to_string(),
         Quantifier::ZeroOrOne => "?".to_string(),
-        Quantifier::Exact(n) => format!("{{{}}}", n),
-        Quantifier::Range(a, b) => format!("{{{},{}}}", a, b),
-        Quantifier::AtLeast(n) => format!("{{{},}}", n),
+        Quantifier::Exact(n) => format!("{{{n}}}"),
+        Quantifier::Range(a, b) => format!("{{{a},{b}}}"),
+        Quantifier::AtLeast(n) => format!("{{{n},}}"),
     }
 }
 
