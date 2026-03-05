@@ -8,5 +8,7 @@ else
   echo "" >&2
   echo "Or build from source:" >&2
   echo "  cargo install --path ~/projects/fcp/fcp-regex" >&2
+  echo "" >&2
+  echo "Or run /fcp:setup in Claude Code to install all FCP dependencies." >&2
   exit 1
 fi
