@@ -48,21 +48,10 @@ pub fn handle_define(op: &ParsedOp, registry: &mut FragmentRegistry) -> (String,
 }
 
 pub fn handle_from(op: &ParsedOp, registry: &mut FragmentRegistry) -> (String, Option<RegexEvent>) {
-    // The source may contain colons (e.g. "rfc3986:scheme") which the parser
-    // splits into a key:value param. Reconstruct from raw tokens if needed.
-    let source_owned;
-    let source: &str = if !op.positionals.is_empty() {
-        &op.positionals[0]
-    } else {
-        // Check raw tokens: verb is [0], source should be [1]
-        let tokens = crate::parse::tokenize(&op.raw);
-        if tokens.len() >= 2 {
-            source_owned = tokens[1].clone();
-            &source_owned
-        } else {
-            return ("ERROR: from requires a library source name".to_string(), None);
-        }
-    };
+    if op.positionals.is_empty() {
+        return ("ERROR: from requires a library source name".to_string(), None);
+    }
+    let source = &op.positionals[0];
     let Some(pattern) = library::get_pattern(source) else {
         return (format!("ERROR: library pattern {source:?} not found"), None);
     };
@@ -305,6 +294,63 @@ mod tests {
         let (msg, event) = handle_rename(&op, &mut reg);
         assert!(msg.starts_with("ERROR:"));
         assert!(event.is_none());
+    }
+
+    // --- Colon-in-name end-to-end tests ---
+
+    #[test]
+    fn test_from_colon_name_no_alias() {
+        let mut reg = make_registry();
+        let op = parse_op("from rfc3986:scheme").unwrap();
+        let (msg, event) = handle_from(&op, &mut reg);
+        assert!(msg.contains("imported"), "expected import success, got: {msg}");
+        assert!(event.is_some());
+        assert!(reg.contains("rfc3986:scheme"), "fragment should be stored under colon name");
+    }
+
+    #[test]
+    fn test_from_colon_name_with_alias() {
+        let mut reg = make_registry();
+        let op = parse_op("from rfc3986:scheme as:scheme").unwrap();
+        let (msg, event) = handle_from(&op, &mut reg);
+        assert!(msg.contains("imported"), "got: {msg}");
+        assert!(event.is_some());
+        assert!(reg.contains("scheme"));
+    }
+
+    #[test]
+    fn test_compile_colon_name() {
+        let mut reg = make_registry();
+        let from_op = parse_op("from rfc3986:scheme").unwrap();
+        handle_from(&from_op, &mut reg);
+        let op = parse_op("compile rfc3986:scheme").unwrap();
+        let (msg, _) = handle_compile(&op, &reg);
+        assert!(msg.starts_with("= rfc3986:scheme:"), "expected compile output, got: {msg}");
+    }
+
+    #[test]
+    fn test_drop_colon_name() {
+        let mut reg = make_registry();
+        let from_op = parse_op("from rfc3986:scheme").unwrap();
+        handle_from(&from_op, &mut reg);
+        let op = parse_op("drop rfc3986:scheme").unwrap();
+        let (msg, event) = handle_drop(&op, &mut reg);
+        assert!(msg.contains("dropped"), "got: {msg}");
+        assert!(event.is_some());
+        assert!(!reg.contains("rfc3986:scheme"));
+    }
+
+    #[test]
+    fn test_rename_from_colon_name() {
+        let mut reg = make_registry();
+        let from_op = parse_op("from rfc3986:scheme").unwrap();
+        handle_from(&from_op, &mut reg);
+        let op = parse_op("rename rfc3986:scheme myscheme").unwrap();
+        let (msg, event) = handle_rename(&op, &mut reg);
+        assert!(msg.contains("renamed"), "got: {msg}");
+        assert!(event.is_some());
+        assert!(!reg.contains("rfc3986:scheme"));
+        assert!(reg.contains("myscheme"));
     }
 
     #[test]

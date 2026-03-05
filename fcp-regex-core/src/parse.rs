@@ -26,8 +26,19 @@ pub fn parse_op(input: &str) -> Result<ParsedOp, String> {
     let mut positionals = Vec::new();
     let mut params = HashMap::new();
 
-    for token in &tokens[1..] {
-        if is_key_value(token) {
+    // Verbs with fixed leading positional slots — these tokens skip
+    // the is_key_value check so that colon names (e.g. rfc3986:scheme)
+    // aren't consumed as params.
+    let forced_positionals = match verb.as_str() {
+        "from" | "compile" | "drop" | "define" => 1,
+        "rename" => 2,
+        _ => 0,
+    };
+
+    for (i, token) in tokens[1..].iter().enumerate() {
+        if i < forced_positionals {
+            positionals.push(token.clone());
+        } else if is_key_value(token) {
             let (key, value) = parse_key_value(token);
             params.insert(key, value);
         } else {
@@ -232,6 +243,66 @@ mod tests {
     fn test_tokenize_quoted() {
         let got = tokenize(r#"label A "hello world""#);
         assert_eq!(got, vec!["label", "A", "hello world"]);
+    }
+
+    // --- Colon-in-name tests: verbs with forced positional slots ---
+
+    #[test]
+    fn test_from_colon_name_is_positional() {
+        let r = parse_op("from rfc3986:scheme").unwrap();
+        assert_eq!(r.verb, "from");
+        assert_eq!(r.positionals, vec!["rfc3986:scheme"]);
+        assert!(r.params.is_empty());
+    }
+
+    #[test]
+    fn test_from_colon_name_with_alias_param() {
+        let r = parse_op("from rfc3986:scheme as:myscheme").unwrap();
+        assert_eq!(r.positionals, vec!["rfc3986:scheme"]);
+        assert_eq!(r.params["as"], "myscheme");
+    }
+
+    #[test]
+    fn test_compile_colon_name_is_positional() {
+        let r = parse_op("compile rfc3986:scheme").unwrap();
+        assert_eq!(r.positionals, vec!["rfc3986:scheme"]);
+        assert!(r.params.is_empty());
+    }
+
+    #[test]
+    fn test_compile_colon_name_with_params() {
+        let r = parse_op("compile rfc3986:scheme anchored:true flavor:pcre").unwrap();
+        assert_eq!(r.positionals, vec!["rfc3986:scheme"]);
+        assert_eq!(r.params["anchored"], "true");
+        assert_eq!(r.params["flavor"], "pcre");
+    }
+
+    #[test]
+    fn test_drop_colon_name_is_positional() {
+        let r = parse_op("drop rfc3986:scheme").unwrap();
+        assert_eq!(r.positionals, vec!["rfc3986:scheme"]);
+    }
+
+    #[test]
+    fn test_rename_colon_names_are_positionals() {
+        let r = parse_op("rename rfc3986:scheme myscheme").unwrap();
+        assert_eq!(r.positionals, vec!["rfc3986:scheme", "myscheme"]);
+    }
+
+    #[test]
+    fn test_define_colon_name_is_positional() {
+        let r = parse_op("define rfc3986:scheme any:alpha+").unwrap();
+        assert_eq!(r.positionals, vec!["rfc3986:scheme"]);
+        // any:alpha+ goes to params since it's beyond the forced slot
+        assert_eq!(r.params["any"], "alpha+");
+    }
+
+    #[test]
+    fn test_unknown_verb_no_forced_positionals() {
+        // Unknown verbs should behave as before — colon tokens are params
+        let r = parse_op("foobar rfc3986:scheme").unwrap();
+        assert!(r.positionals.is_empty());
+        assert_eq!(r.params["rfc3986"], "scheme");
     }
 
     #[test]

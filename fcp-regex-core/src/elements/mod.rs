@@ -41,12 +41,38 @@ pub fn validate_fragment_name(name: &str) -> Result<(), String> {
     if name.is_empty() {
         return Err("fragment name cannot be empty".to_string());
     }
-    if let Some(ch) = name.chars().find(|ch| !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-')) {
+    if let Some(ch) = name.chars().find(|ch| !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | ':')) {
         return Err(format!(
-            "invalid character {ch:?} in fragment name {name:?} (allowed: a-z, A-Z, 0-9, -)",
+            "invalid character {ch:?} in fragment name {name:?} (allowed: a-z, A-Z, 0-9, -, :)",
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod name_tests {
+    use super::validate_fragment_name;
+
+    #[test]
+    fn test_colon_in_fragment_name_allowed() {
+        // Library patterns use namespace:name (e.g. rfc3986:scheme)
+        assert!(validate_fragment_name("rfc3986:scheme").is_ok());
+        assert!(validate_fragment_name("json:string").is_ok());
+        assert!(validate_fragment_name("rfc5322:addr-spec").is_ok());
+    }
+
+    #[test]
+    fn test_plain_names_still_valid() {
+        assert!(validate_fragment_name("digits").is_ok());
+        assert!(validate_fragment_name("my-fragment").is_ok());
+    }
+
+    #[test]
+    fn test_invalid_chars_still_rejected() {
+        assert!(validate_fragment_name("has space").is_err());
+        assert!(validate_fragment_name("has/slash").is_err());
+        assert!(validate_fragment_name("").is_err());
+    }
 }
 
 /// Parse a quantifier suffix from the end of a string.
@@ -501,6 +527,6 @@ mod tests {
         assert!(validate_fragment_name("has space").is_err());
         assert!(validate_fragment_name("has_underscore").is_err());
         assert!(validate_fragment_name("has.dot").is_err());
-        assert!(validate_fragment_name("has:colon").is_err());
+        assert!(validate_fragment_name("has:colon").is_ok()); // colons allowed for library namespace:name
     }
 }

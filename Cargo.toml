@@ -4,7 +4,7 @@ members = [".", "fcp-regex-core"]
 
 [package]
 name = "fcp-regex"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "MCP server for regex construction via named fragment composition"
 repository = "https://github.com/aetherwing-io/fcp-regex"
