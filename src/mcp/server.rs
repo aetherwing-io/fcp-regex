@@ -36,12 +36,12 @@ pub struct SessionParams {
     pub action: String,
 }
 
-struct RegexState {
-    registry: FragmentRegistry,
-    event_log: EventLog<RegexEvent>,
-    title: String,
-    flavor: String,
-    active: bool,
+pub struct RegexState {
+    pub registry: FragmentRegistry,
+    pub event_log: EventLog<RegexEvent>,
+    pub title: String,
+    pub flavor: String,
+    pub active: bool,
 }
 
 #[derive(Clone)]
@@ -71,7 +71,28 @@ impl RegexServer {
         }
     }
 
-    #[tool(description = "Execute regex fragment operations. Each op: VERB [args...] [key:value ...]. Verbs: define, from, compile, drop, rename. Example: 'define digits any:digit+', 'compile semver anchored:true'")]
+    #[tool(description = "Execute regex fragment operations. Each op: VERB [args...] [key:value ...].
+
+VERBS:
+  define NAME ELEMENT [ELEMENT...]  Create named pattern fragment
+  from SOURCE [as:ALIAS]           Import from pattern library
+  compile NAME [flavor:F] [anchored:bool]  Emit regex string
+  drop NAME                        Remove fragment
+  rename OLD NEW                   Rename fragment
+
+ELEMENTS:
+  <name>        Reference another fragment
+  lit:<chars>   Literal (auto-escaped)
+  any:<C><Q>    Character class     none:<C><Q>  Negated class
+  chars:<S><Q>  Custom char set     not:<S><Q>   Negated set
+  opt:<name>    Optional            alt:<a>|<b>  Alternation
+  cap:<name>    Capture group       cap:<L>/<N>  Named capture
+  sep:<N>/<L>   Separated repeat    raw:<regex>  Raw regex
+
+CLASSES: digit alpha alphanumeric word whitespace any
+QUANTIFIERS: + * ? {N} {N,M} {N,}
+
+Example: ops=['define digits any:digit+', 'compile digits anchored:true']")]
     async fn regex(
         &self,
         Parameters(p): Parameters<MutationParams>,
@@ -94,7 +115,16 @@ impl RegexServer {
                 "compile" => mutation::handle_compile(&op, &state.registry),
                 "drop" => mutation::handle_drop(&op, &mut state.registry),
                 "rename" => mutation::handle_rename(&op, &mut state.registry),
-                _ => (format!("ERROR: unknown verb {:?}", op.verb), None),
+                _ => {
+                    let known_verbs = ["define", "from", "compile", "drop", "rename"];
+                    let msg = format!("ERROR: unknown verb {:?}", op.verb);
+                    let suggestion = crate::fcpcore::formatter::suggest(&op.verb, &known_verbs);
+                    if let Some(s) = suggestion {
+                        (format!("{}\n  try: {}", msg, s), None)
+                    } else {
+                        (msg, None)
+                    }
+                }
             };
 
             if let Some(ev) = event {
@@ -143,7 +173,11 @@ impl RegexServer {
 }
 
 impl RegexServer {
-    async fn handle_session(&self, action: &str) -> String {
+    pub fn state(&self) -> &Arc<Mutex<RegexState>> {
+        &self.state
+    }
+
+    pub async fn handle_session(&self, action: &str) -> String {
         let tokens: Vec<&str> = action.split_whitespace().collect();
         if tokens.is_empty() {
             return "! empty session action".to_string();
@@ -153,7 +187,7 @@ impl RegexServer {
             "new" => self.handle_new(&tokens).await,
             "close" => self.handle_close().await,
             "status" => self.handle_status().await,
-            "undo" => self.handle_undo().await,
+            "undo" => self.handle_undo(&tokens).await,
             "redo" => self.handle_redo().await,
             "checkpoint" => self.handle_checkpoint(&tokens).await,
             _ => format!("! unknown session action {:?}", tokens[0]),
@@ -221,8 +255,21 @@ impl RegexServer {
         }
     }
 
-    async fn handle_undo(&self) -> String {
+    async fn handle_undo(&self, tokens: &[&str]) -> String {
         let mut state = self.state.lock().await;
+
+        // Check for undo to:NAME
+        if let Some(name) = tokens.iter().find_map(|t| t.strip_prefix("to:")) {
+            let events = match state.event_log.undo_to(name) {
+                Ok(evs) => evs,
+                Err(e) => return format!("! {}", e),
+            };
+            for event in &events {
+                reverse_event(event, &mut state.registry);
+            }
+            return format!("= undone to checkpoint {:?} ({} events)", name, events.len());
+        }
+
         let events = state.event_log.undo(1);
         if events.is_empty() {
             return "! nothing to undo".to_string();

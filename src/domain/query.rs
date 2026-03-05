@@ -22,7 +22,14 @@ pub fn handle_query(q: &str, registry: &FragmentRegistry) -> String {
         "stats" => cmd_stats(registry),
         "status" => "= session active".to_string(),
         "history" => cmd_history(rest),
-        _ => format!("! unknown query command {:?}", command),
+        _ => {
+            let known = ["show", "describe", "test", "explain", "list", "get", "map", "stats", "status", "history"];
+            let msg = format!("! unknown query command {:?}", command);
+            match crate::fcpcore::formatter::suggest(command, &known) {
+                Some(s) => format!("{}\n  try: {}", msg, s),
+                None => msg,
+            }
+        }
     }
 }
 
