@@ -25,7 +25,7 @@ pub fn handle_query(q: &str, registry: &FragmentRegistry) -> String {
         _ => {
             let known = ["show", "describe", "test", "explain", "list", "get", "map", "stats", "status", "history"];
             let msg = format!("! unknown query command {command:?}");
-            match crate::fcpcore::formatter::suggest(command, &known) {
+            match crate::parse::suggest(command, &known) {
                 Some(s) => format!("{msg}\n  try: {s}"),
                 None => msg,
             }

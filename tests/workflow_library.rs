@@ -2,7 +2,7 @@ use fcp_regex::domain::compiler;
 use fcp_regex::domain::model::FragmentRegistry;
 use fcp_regex::domain::mutation;
 use fcp_regex::elements::Element;
-use fcp_regex::fcpcore::parsed_op::parse_op;
+use fcp_regex_core::parse::parse_op;
 use fcp_regex::library;
 
 #[test]

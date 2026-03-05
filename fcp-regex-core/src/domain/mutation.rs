@@ -1,6 +1,5 @@
 use crate::elements::parse_element;
-use crate::fcpcore::parsed_op::ParsedOp;
-use crate::fcpcore::tokenizer::tokenize;
+use crate::parse::{ParsedOp, tokenize};
 use crate::library;
 
 use super::compiler;
@@ -49,10 +48,21 @@ pub fn handle_define(op: &ParsedOp, registry: &mut FragmentRegistry) -> (String,
 }
 
 pub fn handle_from(op: &ParsedOp, registry: &mut FragmentRegistry) -> (String, Option<RegexEvent>) {
-    if op.positionals.is_empty() {
-        return ("ERROR: from requires a library source name".to_string(), None);
-    }
-    let source = &op.positionals[0];
+    // The source may contain colons (e.g. "rfc3986:scheme") which the parser
+    // splits into a key:value param. Reconstruct from raw tokens if needed.
+    let source_owned;
+    let source: &str = if !op.positionals.is_empty() {
+        &op.positionals[0]
+    } else {
+        // Check raw tokens: verb is [0], source should be [1]
+        let tokens = crate::parse::tokenize(&op.raw);
+        if tokens.len() >= 2 {
+            source_owned = tokens[1].clone();
+            &source_owned
+        } else {
+            return ("ERROR: from requires a library source name".to_string(), None);
+        }
+    };
     let Some(pattern) = library::get_pattern(source) else {
         return (format!("ERROR: library pattern {source:?} not found"), None);
     };
@@ -116,7 +126,7 @@ pub fn handle_rename(op: &ParsedOp, registry: &mut FragmentRegistry) -> (String,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fcpcore::parsed_op::parse_op;
+    use crate::parse::parse_op;
 
     fn make_registry() -> FragmentRegistry {
         FragmentRegistry::new()

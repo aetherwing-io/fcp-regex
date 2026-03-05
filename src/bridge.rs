@@ -5,7 +5,7 @@ use tokio::net::UnixStream;
 
 use fcp_regex::domain::mutation;
 use fcp_regex::domain::query;
-use fcp_regex::fcpcore::parsed_op::parse_op;
+use fcp_regex_core::parse::parse_op;
 use fcp_regex::mcp::server::RegexServer;
 
 // ---------------------------------------------------------------------------
@@ -131,7 +131,7 @@ async fn handle_request(server: &RegexServer, req: JsonRpcRequest) -> JsonRpcRes
                 let op = match parse_op(op_str) {
                     Ok(o) => o,
                     Err(e) => {
-                        results.push(format!("ERROR: {}", e.error));
+                        results.push(format!("ERROR: {e}"));
                         continue;
                     }
                 };

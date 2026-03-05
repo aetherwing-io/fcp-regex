@@ -15,7 +15,8 @@ use crate::domain::model::{FragmentRegistry, RegexEvent};
 use crate::domain::mutation;
 use crate::domain::query;
 use crate::fcpcore::event_log::EventLog;
-use crate::fcpcore::parsed_op::parse_op;
+use fcp_regex_core::parse::parse_op;
+use fcp_regex_core::parse::suggest;
 use crate::reference_card::REFERENCE_CARD;
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -104,7 +105,7 @@ Example: ops=['define digits any:digit+', 'compile digits anchored:true']")]
             let op = match parse_op(op_str) {
                 Ok(o) => o,
                 Err(e) => {
-                    results.push(format!("ERROR: {}", e.error));
+                    results.push(format!("ERROR: {e}"));
                     continue;
                 }
             };
@@ -118,7 +119,7 @@ Example: ops=['define digits any:digit+', 'compile digits anchored:true']")]
                 _ => {
                     let known_verbs = ["define", "from", "compile", "drop", "rename"];
                     let msg = format!("ERROR: unknown verb {:?}", op.verb);
-                    let suggestion = crate::fcpcore::formatter::suggest(&op.verb, &known_verbs);
+                    let suggestion = suggest(&op.verb, &known_verbs);
                     if let Some(s) = suggestion {
                         (format!("{msg}\n  try: {s}"), None)
                     } else {

@@ -169,9 +169,9 @@ checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
 name = "fcp-regex"
 version = "0.1.0"
 dependencies = [
+ "fcp-regex-core",
  "libc",
  "regex",
- "regex-syntax",
  "rmcp",
  "schemars",
  "serde",
@@ -181,6 +181,16 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "fcp-regex-core"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "regex-syntax",
+ "tempfile",
+ "thiserror",
 ]
 
 [[package]]
