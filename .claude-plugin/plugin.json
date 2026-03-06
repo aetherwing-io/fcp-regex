@@ -1,7 +1,7 @@
 {
   "name": "fcp-regex",
   "description": "Build regexes via named fragment composition — no raw syntax, no escaping burden",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "author": {
     "name": "Scott Meyer"

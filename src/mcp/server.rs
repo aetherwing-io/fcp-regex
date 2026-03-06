@@ -343,10 +343,17 @@ fn replay_event(event: &RegexEvent, registry: &mut FragmentRegistry) {
 impl ServerHandler for RegexServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
+            server_info: Implementation {
+                name: "fcp-regex".into(),
+                version: "0.1.0".into(),
+                ..Default::default()
+            },
             instructions: Some(
-                "FCP Regex server for building regular expressions via named fragment composition. \
-                 Use regex_session to start a session, regex for mutations, regex_query for queries, \
-                 and regex_help for the reference card."
+                "FCP Regex server for building and testing regular expressions via named fragment \
+                 composition. Use regex_session to start a new session, regex to define fragments, \
+                 compose patterns, and build expressions incrementally, regex_query to test patterns \
+                 against input strings and inspect fragments, and regex_help for the full verb \
+                 reference. Start every interaction with regex_session."
                     .into(),
             ),
             capabilities: ServerCapabilities::builder().enable_tools().build(),
