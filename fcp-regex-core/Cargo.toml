@@ -3,7 +3,7 @@ name = "fcp-regex-core"
 version = "0.1.0"
 edition = "2021"
 description = "Core regex fragment composition library — no MCP/server dependencies"
-repository = "https://github.com/aetherwing-io/fcp-regex"
+repository = "https://github.com/os-tack/fcp-regex"
 license = "MIT"
 
 [dependencies]

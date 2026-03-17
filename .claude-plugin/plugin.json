@@ -6,6 +6,6 @@
   "author": {
     "name": "Scott Meyer"
   },
-  "repository": "https://github.com/aetherwing-io/fcp-regex",
+  "repository": "https://github.com/os-tack/fcp-regex",
   "keywords": ["regex", "pattern-matching", "composition", "mcp"]
 }

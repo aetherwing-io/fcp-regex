@@ -7,7 +7,7 @@ name = "fcp-regex"
 version = "0.1.2"
 edition = "2021"
 description = "MCP server for regex construction via named fragment composition"
-repository = "https://github.com/aetherwing-io/fcp-regex"
+repository = "https://github.com/os-tack/fcp-regex"
 license = "MIT"
 
 [dependencies]

@@ -4,7 +4,7 @@ MCP server for regex construction via named fragment composition.
 
 ## What It Does
 
-LLMs understand regex semantics perfectly — they know what they want to match. But they consistently fail at regex syntax: unbalanced groups, unescaped metacharacters, broken alternations. fcp-regex solves this by letting LLMs build regexes through named fragments with a flat element syntax. No raw regex, no paren balancing, no escaping burden. Built on the [FCP](https://github.com/aetherwing-io/fcp) framework.
+LLMs understand regex semantics perfectly — they know what they want to match. But they consistently fail at regex syntax: unbalanced groups, unescaped metacharacters, broken alternations. fcp-regex solves this by letting LLMs build regexes through named fragments with a flat element syntax. No raw regex, no paren balancing, no escaping burden. Built on the [FCP](https://github.com/os-tack/fcp) framework.
 
 Written in Rust using [rmcp](https://github.com/anthropics/rmcp) for MCP transport and [regex-syntax](https://docs.rs/regex-syntax) for compilation.
 
@@ -110,7 +110,7 @@ regex_query('get rfc3986:uri')
 ### Build from source
 
 ```bash
-cargo install --git https://github.com/aetherwing-io/fcp-regex
+cargo install --git https://github.com/os-tack/fcp-regex
 ```
 
 ### MCP Client Configuration
